@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bacula-dir
+  namespace: bacula
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: bacula-dir
+      app.kubernetes.io/name: bacula-dir
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: bacula-dir
+        app.kubernetes.io/name: bacula-dir
+    spec:
+      securityContext:
+        runAsUser: 0    # Run as root user (UID 0)
+        runAsGroup: 0   # Run as root group (GID 0)
+        fsGroup: 0      # Ensure mounted volumes are accessible to root
+      containers:
+        - name: bacula-dir
+          image: fametec/bacula-director:11.0.5
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9101
+              name: bacula-dir
+              protocol: TCP
+          volumeMounts:
+            - name: bacula-config
+              mountPath: /opt/bacula/etc/bacula-dir.conf
+              subPath: bacula-dir.conf
+            - name: bacula-config
+              mountPath: /opt/bacula/etc/bconsole.conf
+              subPath: bconsole.conf
+            - name: bacula-dir-storage
+              mountPath: /opt/bacula/log
+              subPath: log
+            - name: bacula-dir-storage
+              mountPath: /opt/bacula/working
+              subPath: working
+            - name: bacula-dir-storage
+              mountPath: /opt/bacula/storage
+              subPath: storage
+      volumes:
+        - name: bacula-config
+          configMap:
+            name: bacula-dir-config
+        - name: bacula-dir-storage
+          persistentVolumeClaim:
+            claimName: bacula-dir-pvc
